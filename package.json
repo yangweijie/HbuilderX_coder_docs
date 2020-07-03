@@ -1,9 +1,9 @@
 {
-	"name": "your extension name",
-	"description": "your extension description",
-        "displayName": "your extension display name",
-	"version": "0.0.0",
-	"publisher": "your name",
+	"name": "coder docs",
+	"description": "程序员手册",
+        "displayName": "coder docs",
+	"version": "0.0.1",
+	"publisher": "yangweijie",
 	"engines": {
 		"HBuilderX": "^2.7.0"
 	},
