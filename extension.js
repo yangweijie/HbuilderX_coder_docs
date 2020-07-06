@@ -8,8 +8,9 @@ function activate(context) {
 		var current_dir = __dirname;
 		let uri = path.join(__dirname, 'str.html');
 		console.log(uri);
-		var html = fs.readFileSync(uri, 'utf8');
-		console.log(html);
+		// var html = fs.readFileSync(uri, 'utf8');
+		// console.log(html);
+		html = '<div width="1920" height="1080" align="center"><div width="200">aa</div></div>'
 		hx.window.showInformationMessage(html);
 	});
 	//订阅销毁钩子，插件禁用的时候，自动注销该command。
