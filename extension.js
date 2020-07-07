@@ -23,11 +23,24 @@ function getToken(code){
 		// console.log(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
 		items.push(code);
 	}
-	hx.window.showQuickPick(items);
+	hx.window.showQuickPick(items, {
+		placeHolder: "请选择您要查看的关键词"
+	}).then(function(result) {
+		if (!result) {
+			return;
+		}
+		let text = result.path;
+		console.log("您选择的内容是：", text);
+		showContent(code, text);
+	});
 }
 
-function showContent(code, token){
-	
+function showContent(code, file){
+	var current_dir = __dirname;
+	let uri = path.join(current_dir, `/docs/`+ file);
+	console.log(uri);
+	var html = fs.readFileSync(uri, 'utf8');
+	hx.window.showInformationMessage(html);
 }
 
 //该方法将在插件激活的时候调用
@@ -50,10 +63,13 @@ function activate(context) {
 			// console.log(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
 			items.push({
 				label: `<span style="color:red">${code}</span>`,
+				description: `<img src="${img_blob}" />`,
 				code : doc_list_arr[item].features.code
 			});
 		}
-		
+		// let html = `<img src="${img_blob}" />`;
+		// hx.window.showInformationMessage(html);
+		// return;
 		getToken(items[1].code);
 		
 		// let config = hx.workspace.getConfiguration();
@@ -67,7 +83,6 @@ function activate(context) {
 		// TODO quick_picker 里显示图片
 		// var html = fs.readFileSync(uri, 'utf8');
 		// console.log(html);
-		// html = '<div width="1920" height="1080" align="center"><div width="200">aa</div></div>'
 		// hx.window.showInformationMessage(html);
 	});
 	//订阅销毁钩子，插件禁用的时候，自动注销该command。
