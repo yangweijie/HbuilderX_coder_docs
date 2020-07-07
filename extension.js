@@ -10,6 +10,26 @@ function docList(){
 	return data;
 }
 
+function getToken(code){
+	var current_dir = __dirname;
+	let uri = path.join(__dirname, '/index/'+code+'.json');
+	let data = fs.readFileSync(uri, 'utf8');
+	let data_arr = JSON.parse(data);
+	let items = [];
+	for (let item in data_arr) {
+		let code = data_arr[item];
+		code.label = code.name;
+		// <span style="background-image:url(${icon});width:20px;height:20px;"></span>
+		// console.log(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
+		items.push(code);
+	}
+	hx.window.showQuickPick(items);
+}
+
+function showContent(code, token){
+	
+}
+
 //该方法将在插件激活的时候调用
 function activate(context) {
 	let disposable = hx.commands.registerCommand('extension.helloWorld', () => {
@@ -29,12 +49,21 @@ function activate(context) {
 			// <span style="background-image:url(${icon});width:20px;height:20px;"></span>
 			// console.log(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
 			items.push({
-				label: `<img src="${img_blob}" width=20 height=20><span>${code}</span>`,
+				label: `<span style="color:red">${code}</span>`,
 				code : doc_list_arr[item].features.code
 			});
 		}
 		
-		hx.window.showQuickPick(items);
+		getToken(items[1].code);
+		
+		// let config = hx.workspace.getConfiguration();
+		// if(config.get('coderDocs.current') === undefined){
+		// 	console.log('没有配置过');
+		// }
+		// config.update('coderDocs.current', 'php');
+		
+		// console.log(config.get('coderDocs.current'));
+		// hx.window.showQuickPick(items);
 		// TODO quick_picker 里显示图片
 		// var html = fs.readFileSync(uri, 'utf8');
 		// console.log(html);
