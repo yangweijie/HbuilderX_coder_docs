@@ -12,17 +12,29 @@
 	],
 	"main": "./extension",
 	"activationEvents": [
-		"onCommand:extension.helloWorld"
+		"onCommand:extension.coderDocsSearch",
+		"onCommand:extension.coderDocsConfig"
 	],
 	"contributes": {
-		"commands": [{
-			"command": "extension.helloWorld",
-			"title": "Hello World"
-		}],
+		"commands": [
+			{
+				"command": "extension.coderDocsSearch",
+				"title": "程序员手册搜索"
+			},
+			{
+				"command": "extension.coderDocsConfig",
+				"title": "程序员手册配置当前手册"
+			}
+		],
 		"menus": {
 			"editor/context": [
 				{
-					"command": "extension.helloWorld",
+					"command": "extension.coderDocsConfig",
+					"group": "z_commands",
+					"when": "editorTextFocus"
+				},
+				{
+					"command": "extension.coderDocsSearch",
 					"group": "z_commands",
 					"when": "editorTextFocus"
 				},
