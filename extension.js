@@ -43,26 +43,69 @@ function getToken(code){
 // 	hx.window.showInformationMessage(html);
 // }
 
+
+
+
 function showContent(code, file){
 	var current_dir = __dirname;
+	hx.workspace.openTextDocument(path.join(current_dir, `/preview.md`));
 	let uri = path.join(current_dir, `/docs/`+ file);
 	console.log(uri);
-	hx.workspace.openTextDocument(uri);
-	return ;
+	// hx.workspace.openTextDocument(uri);
+	// return ;
 	var html = fs.readFileSync(uri, 'utf8');
-	// hx.window.showInformationMessage(html);
-	let editorPromise = hx.window.getActiveTextEditor();
-	editorPromise.then((editor)=>{
-		let workspaceEdit = new hx.WorkspaceEdit();
-		let edits = [];
-		edits.push(new hx.TextEdit({
-			start: 0,
-			end: 0
-		}, html));
-
-		workspaceEdit.set(editor.document.uri,edits);
-		hx.workspace.applyEdit(workspaceEdit);
+	
+	const http = require('http');
+	// var html = 'asd';
+	var qs=require('querystring');
+	var post_data={html:html} //提交的数据
+	var content=qs.stringify(post_data);
+	 
+	var options = {
+	  host: 'yangweijie.cn',
+	  port: 80,
+	  path: '/api/docset/html2md',
+	  method: 'POST',
+	  headers:{
+		'Content-Type':'application/x-www-form-urlencoded',
+		'Content-Length':content.length
+	  }
+	};
+	console.log("post options:\n",options);
+	console.log("content:",content);
+	console.log("\n");  
+	var req = http.request(options, function(res) {
+		console.log("statusCode: ", res.statusCode);
+		console.log("headers: ", res.headers);
+		var _data='';
+		  res.on('data', function(chunk){
+			 _data += chunk;
+		  });
+		res.on('end', function(){
+			console.log("\n--->>\nresult:",_data);
+			let editorPromise = hx.window.getActiveTextEditor();
+			editorPromise.then((editor)=>{
+				let workspaceEdit = new hx.WorkspaceEdit();
+				let edits = [];
+				edits.push(new hx.TextEdit({
+					start: 0,
+					end: 0
+				}, _data));
+		
+				workspaceEdit.set(editor.document.uri,edits);
+				hx.workspace.applyEdit(workspaceEdit);
+			});
+		});
 	});
+	req.on('error', function(e){
+		console.log('请求遇到问题: '+e.message);
+	});
+	req.write(content);
+	req.end();
+	console.log(html);
+	
+	// hx.window.showInformationMessage(html);
+	
 }
 
 //该方法将在插件激活的时候调用

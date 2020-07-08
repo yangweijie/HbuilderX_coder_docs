@@ -1,51 +1,53 @@
 {
-	"name": "coder docs",
-	"description": "程序员手册",
-        "displayName": "coder docs",
-	"version": "0.0.1",
-	"publisher": "yangweijie",
-	"engines": {
-		"HBuilderX": "^2.7.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"main": "./extension",
-	"activationEvents": [
-		"onCommand:extension.coderDocsSearch",
-		"onCommand:extension.coderDocsConfig"
-	],
-	"contributes": {
-		"commands": [
-			{
-				"command": "extension.coderDocsSearch",
-				"title": "程序员手册搜索"
-			},
-			{
-				"command": "extension.coderDocsConfig",
-				"title": "程序员手册配置当前手册"
-			}
-		],
-		"menus": {
-			"editor/context": [
-				{
-					"command": "extension.coderDocsConfig",
-					"group": "z_commands",
-					"when": "editorTextFocus"
-				},
-				{
-					"command": "extension.coderDocsSearch",
-					"group": "z_commands",
-					"when": "editorTextFocus"
-				},
-				{
-					"group": "z_commands"
-				}
-			]
-		}
-	},
-	"extensionDependencies": [
-		"plugin-manager"
-	],
-	"dependencies": {}
+  "name": "coder docs",
+  "description": "程序员手册",
+  "displayName": "coder docs",
+  "version": "0.0.1",
+  "publisher": "yangweijie",
+  "engines": {
+    "HBuilderX": "^2.7.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension",
+  "activationEvents": [
+    "onCommand:extension.coderDocsSearch",
+    "onCommand:extension.coderDocsConfig"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.coderDocsSearch",
+        "title": "程序员手册搜索"
+      },
+      {
+        "command": "extension.coderDocsConfig",
+        "title": "程序员手册配置当前手册"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "extension.coderDocsConfig",
+          "group": "z_commands",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.coderDocsSearch",
+          "group": "z_commands",
+          "when": "editorTextFocus"
+        },
+        {
+          "group": "z_commands"
+        }
+      ]
+    }
+  },
+  "extensionDependencies": [
+    "plugin-manager"
+  ],
+  "dependencies": {
+    "turndown": "^6.0.0"
+  }
 }
