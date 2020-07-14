@@ -1,7 +1,10 @@
 var hx = require("hbuilderx");
 var fs = require('fs');
+const http = require('http');
 var path = require("path");
 const unzip = require("unzip");
+var yauzl = require("yauzl");
+var iconv = require('iconv-lite');
 var ostype;
 const os = require('os');
 
@@ -119,27 +122,52 @@ function downDoc(file){
 	downloadFile(url, dest, {
 		success:()=>{
 			setStatusMsg(`${file}手册已下载`);
-			if (ostype == "Darwin") {
-				let download_pan = showInformation("下载已完成，您的系统无法自动解压缩，请手动解压后重启HBuilderX", "", [
-					"打开目录"
-				]);
-				download_pan.then((result) => {
-					hx.env.openExternal("file://" + path.posix.join(__dirname, `/docs/${file}`));
-				});
-			} else {
-				setStatusMsg("正在解压缩...");
-				var extract = unzip.Extract({
-					path: path.posix.join(__dirname)
-				});
-				extract.on('finish', function() {
-					setStatusMsg("正在启动彩虹屁老婆");
-					openWifeContainer();
-				});
-				extract.on('error', function(err) {
-					debugLog(err);
-				});
-				fs.createReadStream(dest).pipe(extract);
-			}
+			yauzl.open(dest, {lazyEntries: true}, function(err, zipfile) {
+			let target_dir = path.join(__dirname, `/docs/`);
+			  if (err) throw err;
+			  zipfile.readEntry();
+			  zipfile.on("entry", function(entry) {
+				entry.fileName = iconv.decode(entry.fileName, 'GBK');
+			    if (/\/$/.test(entry.fileName)) {
+			      if(!fs.existsSync(path.join(target_dir,entry.fileName))){
+			        fs.mkdirSync(path.join(target_dir,entry.fileName));
+			      }
+			      zipfile.readEntry();
+			    } else {
+			      zipfile.openReadStream(entry, function(err, readStream) {
+			        if (err) throw err;
+			        readStream.on("end", function() {
+			          zipfile.readEntry();
+			        });
+			        readStream.pipe(fs.createWriteStream(path.join(target_dir, entry.fileName)));
+			      });
+			    }
+			  }).on("close",function(){
+			    console.log("解压完成");
+			  });
+			});
+			
+			
+			// if (ostype == "Darwin") {
+			// 	let download_pan = showInformation("下载已完成，您的系统无法自动解压缩，请手动解压后重启HBuilderX", "", [
+			// 		"打开目录"
+			// 	]);
+			// 	download_pan.then((result) => {
+			// 		hx.env.openExternal("file://" + path.posix.join(__dirname, `/docs/${file}`));
+			// 	});
+			// } else {
+			// 	setStatusMsg("正在解压缩...");
+			// 	var extract = unzip.Extract({
+			// 		path: path.posix.join(__dirname, '/docs/')
+			// 	});
+			// 	extract.on('finish', function() {
+			// 		setStatusMsg("解压完毕");
+			// 	});
+			// 	extract.on('error', function(err) {
+			// 		debugLog(err);
+			// 	});
+			// 	fs.createReadStream(dest).pipe(extract);
+			// }
 		},
 		progress: (bytesloaded, bytestotal) => {
 			setStatusMsg(file+"手册下载进度：" + (bytesloaded / bytestotal * 100).toFixed(2) + "%");
@@ -215,6 +243,8 @@ function activate(context) {
 	debugLog("好戏开始了：" + Date.now());
 	ostype = os.type;
 	debugLog("当前系统为" + ostype);
+	
+	
 	let search = hx.commands.registerCommand('extension.coderDocsSearch', () => {
 		let config = hx.workspace.getConfiguration();
 		if(config.get('coderDocs.current') === undefined){
@@ -222,7 +252,14 @@ function activate(context) {
 			hx.window.showErrorMessage('没有配置过当前查看的手册');
 			return;
 		}
-		getToken(config.get('coderDocs.current'));
+		let code = config.get('coderDocs.current') || 'php';
+		let current_dir = __dirname;
+		if(!fs.existsSync(path.join(current_dir, `/docs/${code}`))){
+			hx.window.showErrorMessage(`${code}手册缺失，将自动下载`);
+			downDoc(code);
+			return;
+		}
+		getToken(code);
 	});
 	//订阅销毁钩子，插件禁用的时候，自动注销该command。
 	let config = hx.commands.registerCommand('extension.coderDocsConfig', () => {
