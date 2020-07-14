@@ -1,11 +1,13 @@
 var hx = require("hbuilderx");
 var fs = require('fs');
 var path = require("path");
-
+const unzip = require("unzip");
 var ostype;
 const os = require('os');
 
 const pluginName = '程序员手册';
+let outputChannel;
+
 
 //统一调试
 function openDebugChannel() {
@@ -26,6 +28,48 @@ function showInformation(msg, title, buttons = []) {
 	if (!title) title = pluginName;
 	var str = '<span style="color:#3366ff">' + title + '</span><br>' + msg;
 	return hx.window.showInformationMessage(str, buttons);
+}
+
+function downloadFile(url, dest, callbacks) {
+	if (!callbacks) callbacks = {};
+
+	if (fs.existsSync(dest)) {
+		debugLog(dest + "已存在");
+		if (callbacks.success) callbacks.success();
+		return;
+	}
+
+	debugLog("准备将" + url + "下载至" + dest);
+	const file = fs.createWriteStream(dest);
+
+	http.get(url, (res) => {
+		if (res.statusCode !== 200) {
+			if (callbacks.fail) callbacks.fail(res);
+			return;
+		}
+
+		const bytestotal = parseInt(res.headers['content-length'], 10);
+		let bytesloaded = 0;
+		debugLog("文件大小：" + bytestotal);
+
+		res.on('end', () => {
+			if (callbacks.success) callbacks.success();
+		});
+		res.on('data', (data) => {
+			const data_len = parseInt(data.length, 10);
+			bytesloaded += data_len;
+			debugLog("已下载大小：" + bytesloaded);
+			if (callbacks.progress) callbacks.progress(bytesloaded, bytestotal);
+		});
+
+		file.on('finish', () => {
+			file.close();
+		}).on('error', (err) => {
+			fs.unlink(dest);
+		});
+
+		res.pipe(file);
+	});
 }
 
 function docList(){
@@ -69,8 +113,39 @@ function getToken(code){
 // 	hx.window.showInformationMessage(html);
 // }
 
-
-
+function downDoc(file){
+	var url = `http://yangweijie.cn/uploads/docs/${file}.zip`;
+	var dest = path.join(__dirname, `/docs/${file}.zip`);
+	downloadFile(url, dest, {
+		success:()=>{
+			setStatusMsg(`${file}手册已下载`);
+			if (ostype == "Darwin") {
+				let download_pan = showInformation("下载已完成，您的系统无法自动解压缩，请手动解压后重启HBuilderX", "", [
+					"打开目录"
+				]);
+				download_pan.then((result) => {
+					hx.env.openExternal("file://" + path.posix.join(__dirname, `/docs/${file}`));
+				});
+			} else {
+				setStatusMsg("正在解压缩...");
+				var extract = unzip.Extract({
+					path: path.posix.join(__dirname)
+				});
+				extract.on('finish', function() {
+					setStatusMsg("正在启动彩虹屁老婆");
+					openWifeContainer();
+				});
+				extract.on('error', function(err) {
+					debugLog(err);
+				});
+				fs.createReadStream(dest).pipe(extract);
+			}
+		},
+		progress: (bytesloaded, bytestotal) => {
+			setStatusMsg(file+"手册下载进度：" + (bytesloaded / bytestotal * 100).toFixed(2) + "%");
+		}
+	});
+}
 
 function showContent(code, file){
 	var current_dir = __dirname;
@@ -136,6 +211,10 @@ function showContent(code, file){
 
 //该方法将在插件激活的时候调用
 function activate(context) {
+	openDebugChannel();
+	debugLog("好戏开始了：" + Date.now());
+	ostype = os.type;
+	debugLog("当前系统为" + ostype);
 	let search = hx.commands.registerCommand('extension.coderDocsSearch', () => {
 		let config = hx.workspace.getConfiguration();
 		if(config.get('coderDocs.current') === undefined){
