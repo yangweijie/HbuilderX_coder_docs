@@ -2,6 +2,32 @@ var hx = require("hbuilderx");
 var fs = require('fs');
 var path = require("path");
 
+var ostype;
+const os = require('os');
+
+const pluginName = '程序员手册';
+
+//统一调试
+function openDebugChannel() {
+	outputChannel = hx.window.createOutputChannel(pluginName);
+	outputChannel.show();
+}
+
+function debugLog(str) {
+	outputChannel.appendLine((typeof str == "object") ? JSON.stringify(str) : str);
+}
+
+function setStatusMsg(msg, autohide = 2000) {
+	hx.window.setStatusBarMessage('<span style="color:#3366ff">' + pluginName + '：</span>' + msg);
+}
+
+//统一通知
+function showInformation(msg, title, buttons = []) {
+	if (!title) title = pluginName;
+	var str = '<span style="color:#3366ff">' + title + '</span><br>' + msg;
+	return hx.window.showInformationMessage(str, buttons);
+}
+
 function docList(){
 	var current_dir = __dirname;
 	let uri = path.join(__dirname, '/features/default.json');
