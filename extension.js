@@ -2,11 +2,10 @@ var hx = require("hbuilderx");
 var fs = require('fs');
 const http = require('http');
 var path = require("path");
-const unzip = require("unzip");
-var yauzl = require("yauzl");
 var iconv = require('iconv-lite');
 var ostype;
 const os = require('os');
+var AdmZip = require('@zwg/adm-zip');
 
 const pluginName = '程序员手册';
 let outputChannel;
@@ -79,7 +78,7 @@ function docList(){
 	var current_dir = __dirname;
 	let uri = path.join(__dirname, '/features/default.json');
 	let data = fs.readFileSync(uri, 'utf8');
-	console.log(data);
+	debugLog(data);
 	return data;
 }
 
@@ -93,7 +92,7 @@ function getToken(code){
 		let code = data_arr[item];
 		code.label = code.name;
 		// <span style="background-image:url(${icon});width:20px;height:20px;"></span>
-		// console.log(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
+		// debugLog(item, doc_list_arr[item]); // js 遍历对象属性 获得的是key 不是对象
 		items.push(code);
 	}
 	hx.window.showQuickPick(items, {
@@ -103,7 +102,7 @@ function getToken(code){
 			return;
 		}
 		let text = result.path;
-		console.log("您选择的内容是：", text);
+		debugLog("您选择的内容是：", text);
 		showContent(code, text);
 	});
 }
@@ -111,7 +110,7 @@ function getToken(code){
 // function showContent(code, file){
 // 	var current_dir = __dirname;
 // 	let uri = path.join(current_dir, `/docs/`+ file);
-// 	console.log(uri);
+// 	debugLog(uri);
 // 	var html = fs.readFileSync(uri, 'utf8');
 // 	hx.window.showInformationMessage(html);
 // }
@@ -122,52 +121,9 @@ function downDoc(file){
 	downloadFile(url, dest, {
 		success:()=>{
 			setStatusMsg(`${file}手册已下载`);
-			yauzl.open(dest, {lazyEntries: true}, function(err, zipfile) {
-			let target_dir = path.join(__dirname, `/docs/`);
-			  if (err) throw err;
-			  zipfile.readEntry();
-			  zipfile.on("entry", function(entry) {
-				entry.fileName = iconv.decode(entry.fileName, 'GBK');
-			    if (/\/$/.test(entry.fileName)) {
-			      if(!fs.existsSync(path.join(target_dir,entry.fileName))){
-			        fs.mkdirSync(path.join(target_dir,entry.fileName));
-			      }
-			      zipfile.readEntry();
-			    } else {
-			      zipfile.openReadStream(entry, function(err, readStream) {
-			        if (err) throw err;
-			        readStream.on("end", function() {
-			          zipfile.readEntry();
-			        });
-			        readStream.pipe(fs.createWriteStream(path.join(target_dir, entry.fileName)));
-			      });
-			    }
-			  }).on("close",function(){
-			    console.log("解压完成");
-			  });
-			});
-			
-			
-			// if (ostype == "Darwin") {
-			// 	let download_pan = showInformation("下载已完成，您的系统无法自动解压缩，请手动解压后重启HBuilderX", "", [
-			// 		"打开目录"
-			// 	]);
-			// 	download_pan.then((result) => {
-			// 		hx.env.openExternal("file://" + path.posix.join(__dirname, `/docs/${file}`));
-			// 	});
-			// } else {
-			// 	setStatusMsg("正在解压缩...");
-			// 	var extract = unzip.Extract({
-			// 		path: path.posix.join(__dirname, '/docs/')
-			// 	});
-			// 	extract.on('finish', function() {
-			// 		setStatusMsg("解压完毕");
-			// 	});
-			// 	extract.on('error', function(err) {
-			// 		debugLog(err);
-			// 	});
-			// 	fs.createReadStream(dest).pipe(extract);
-			// }
+			var zip = new AdmZip(dest);
+			zip.extractAllTo(path.join(__dirname, `/docs/`), /*overwrite*/true);
+			setStatusMsg(`${file}手册已解压`);
 		},
 		progress: (bytesloaded, bytestotal) => {
 			setStatusMsg(file+"手册下载进度：" + (bytesloaded / bytestotal * 100).toFixed(2) + "%");
@@ -179,7 +135,7 @@ function showContent(code, file){
 	var current_dir = __dirname;
 	hx.workspace.openTextDocument(path.join(current_dir, `/preview.md`));
 	let uri = path.join(current_dir, `/docs/`+ file);
-	console.log(uri);
+	debugLog(uri);
 	// hx.workspace.openTextDocument(uri);
 	// return ;
 	var html = fs.readFileSync(uri, 'utf8');
@@ -200,18 +156,18 @@ function showContent(code, file){
 		'Content-Length':content.length
 	  }
 	};
-	console.log("post options:\n",options);
-	console.log("content:",content);
-	console.log("\n");  
+	debugLog("post options:\n",options);
+	debugLog("content:",content);
+	debugLog("\n");  
 	var req = http.request(options, function(res) {
-		console.log("statusCode: ", res.statusCode);
-		console.log("headers: ", res.headers);
+		debugLog("statusCode: ", res.statusCode);
+		debugLog("headers: ", res.headers);
 		var _data='';
 		  res.on('data', function(chunk){
 			 _data += chunk;
 		  });
 		res.on('end', function(){
-			console.log("\n--->>\nresult:",_data);
+			debugLog("\n--->>\nresult:",_data);
 			let editorPromise = hx.window.getActiveTextEditor();
 			editorPromise.then((editor)=>{
 				let workspaceEdit = new hx.WorkspaceEdit();
@@ -227,11 +183,11 @@ function showContent(code, file){
 		});
 	});
 	req.on('error', function(e){
-		console.log('请求遇到问题: '+e.message);
+		debugLog('请求遇到问题: '+e.message);
 	});
 	req.write(content);
 	req.end();
-	console.log(html);
+	debugLog(html);
 	
 	// hx.window.showInformationMessage(html);
 	
@@ -248,7 +204,7 @@ function activate(context) {
 	let search = hx.commands.registerCommand('extension.coderDocsSearch', () => {
 		let config = hx.workspace.getConfiguration();
 		if(config.get('coderDocs.current') === undefined){
-			console.log('没有配置过');
+			debugLog('没有配置过');
 			hx.window.showErrorMessage('没有配置过当前查看的手册');
 			return;
 		}
@@ -257,7 +213,7 @@ function activate(context) {
 		if(!fs.existsSync(path.join(current_dir, `/docs/${code}`))){
 			hx.window.showErrorMessage(`${code}手册缺失，将自动下载`);
 			downDoc(code);
-			return;
+			// return;
 		}
 		getToken(code);
 	});
@@ -270,7 +226,7 @@ function activate(context) {
 			let code = doc_list_arr[item].features.code;
 			items.push({
 				label: `<span style="color:red">${code}</span>`,
-				description: `123`,
+				// description: `123`,
 				code : doc_list_arr[item].features.code
 			});
 		}
@@ -280,10 +236,16 @@ function activate(context) {
 			if (!result) {
 				return;
 			}
-			let text = result.code;
-			console.log("您选择的内容是：", text);
+			let text = code = result.code;
+			debugLog("您选择的内容是：", text);
 			let config = hx.workspace.getConfiguration();
 			config.update('coderDocs.current', result.code);
+			let current_dir = __dirname;
+			if(!fs.existsSync(path.join(current_dir, `/docs/${code}`))){
+				hx.window.showErrorMessage(`${code}手册缺失，将自动下载`);
+				downDoc(code);
+				// return;
+			}
 		});
 	});
 	context.subscriptions.push(search);
