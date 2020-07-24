@@ -2,7 +2,7 @@
   "name": "coder docs",
   "description": "程序员手册",
   "displayName": "coder docs",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "yangweijie",
   "engines": {
     "HBuilderX": "^2.7.0"
