@@ -9,6 +9,8 @@ var AdmZip = require('@zwg/adm-zip');
 
 const pluginName = '程序员手册';
 let outputChannel;
+let webviewPanel;
+let support_webview;
 
 
 //统一调试
@@ -132,6 +134,11 @@ function downDoc(file){
 }
 
 function showContent(code, file){
+	var version = hx.env.appVersion;
+	var to_compare = version.split('.');
+	to_compare = `${to_compare[0]}.${to_compare[1]}.${to_compare[2]}`;
+	support_webview = to_compare >= '2.8.1';
+	
 	var current_dir = __dirname;
 	hx.workspace.openTextDocument(path.join(current_dir, `/preview.md`));
 	let uri = path.join(current_dir, `/docs/`+ file);
@@ -139,56 +146,94 @@ function showContent(code, file){
 	// hx.workspace.openTextDocument(uri);
 	// return ;
 	var html = fs.readFileSync(uri, 'utf8');
-	
-	const http = require('http');
-	// var html = 'asd';
-	var qs=require('querystring');
-	var post_data={html:html} //提交的数据
-	var content=qs.stringify(post_data);
-	 
-	var options = {
-	  host: 'yangweijie.cn',
-	  port: 80,
-	  path: '/api/docset/html2md',
-	  method: 'POST',
-	  headers:{
-		'Content-Type':'application/x-www-form-urlencoded',
-		'Content-Length':content.length
-	  }
-	};
-	debugLog("post options:\n",options);
-	debugLog("content:",content);
-	debugLog("\n");  
-	var req = http.request(options, function(res) {
-		debugLog("statusCode: ", res.statusCode);
-		debugLog("headers: ", res.headers);
-		var _data='';
-		  res.on('data', function(chunk){
-			 _data += chunk;
-		  });
-		res.on('end', function(){
-			debugLog("\n--->>\nresult:",_data);
-			let editorPromise = hx.window.getActiveTextEditor();
-			editorPromise.then((editor)=>{
-				let workspaceEdit = new hx.WorkspaceEdit();
-				let edits = [];
-				edits.push(new hx.TextEdit({
-					start: 0,
-					end: 0
-				}, _data));
+	debugLog(html);
+	if(support_webview){
+		debugLog('支持webview');
+		if(!webviewPanel){
+			hx.window.showInformationMessage('请通过菜单“视图-插件扩展视图-手册内容打开视图展示结果”');
+			webviewPanel = hx.window.createWebView("extension.coderDocsShowContent",{
+				enableScritps:true
+			});
+			console.log(hx.window);
+		}
+		// console.log('webviewPanel');
+		// console.log(webviewPanel);
+		// console.log('webviewPanel._webView');
+		// console.log(webviewPanel._webView);
+		console.log('webviewPanel.webView');
+		console.log(webviewPanel.webView);
+		let webview = webviewPanel.webView;
+		// console.log(webview);
+		var background = '';
 		
-				workspaceEdit.set(editor.document.uri,edits);
-				hx.workspace.applyEdit(workspaceEdit);
+		let config = hx.workspace.getConfiguration();
+		let colorScheme = config.get('editor.colorScheme');
+		if (colorScheme == 'Monokai') {
+		    background = 'rgb(39,40,34)'
+		} else if (colorScheme == 'Atom One Dark') {
+		    background = 'rgb(40,44,53)'
+		} else {
+		    background = 'rgb(255,250,232)'
+		};
+		
+		webview.html = html;
+		webview.postMessage({
+		    command: "test"
+		});
+		webview.onDidReceiveMessage((msg) => {
+		    if (msg.command == 'alert') {
+		        hx.window.showInformationMessage(msg.text);
+		    }
+		});
+	}else{
+		const http = require('http');
+		// var html = 'asd';
+		var qs=require('querystring');
+		var post_data={html:html} //提交的数据
+		var content=qs.stringify(post_data);
+		 
+		var options = {
+		  host: 'yangweijie.cn',
+		  port: 80,
+		  path: '/api/docset/html2md',
+		  method: 'POST',
+		  headers:{
+			'Content-Type':'application/x-www-form-urlencoded',
+			'Content-Length':content.length
+		  }
+		};
+		debugLog("post options:\n",options);
+		debugLog("content:",content);
+		debugLog("\n");  
+		var req = http.request(options, function(res) {
+			debugLog("statusCode: ", res.statusCode);
+			debugLog("headers: ", res.headers);
+			var _data='';
+			  res.on('data', function(chunk){
+				 _data += chunk;
+			  });
+			res.on('end', function(){
+				debugLog("\n--->>\nresult:",_data);
+				let editorPromise = hx.window.getActiveTextEditor();
+				editorPromise.then((editor)=>{
+					let workspaceEdit = new hx.WorkspaceEdit();
+					let edits = [];
+					edits.push(new hx.TextEdit({
+						start: 0,
+						end: 0
+					}, _data));
+			
+					workspaceEdit.set(editor.document.uri,edits);
+					hx.workspace.applyEdit(workspaceEdit);
+				});
 			});
 		});
-	});
-	req.on('error', function(e){
-		debugLog('请求遇到问题: '+e.message);
-	});
-	req.write(content);
-	req.end();
-	debugLog(html);
-	
+		req.on('error', function(e){
+			debugLog('请求遇到问题: '+e.message);
+		});
+		req.write(content);
+		req.end();
+	}	
 	// hx.window.showInformationMessage(html);
 	
 }
@@ -235,6 +280,10 @@ function activate(context) {
 		}).then(function(result) {
 			if (!result) {
 				return;
+			}
+			if(support_webview && webviewPanel){
+				webviewPanel.dispose();
+				webviewPanel = undefined;
 			}
 			let text = code = result.code;
 			debugLog("您选择的内容是：", text);

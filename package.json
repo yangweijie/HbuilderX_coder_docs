@@ -16,6 +16,18 @@
     "onCommand:extension.coderDocsConfig"
   ],
   "contributes": {
+	"viewsContainers": {            
+		"rightside": [{
+			"id": "WebViewCoderDocsShowContent",
+			"title": "手册内容"
+		}]
+	 },
+	 "views": {            
+		 "WebViewCoderDocsShowContent": [{
+			"id": "extension.coderDocsShowContent",
+			"title": "手册内容"
+		 }]
+	},
     "commands": [
       {
         "command": "extension.coderDocsSearch",
